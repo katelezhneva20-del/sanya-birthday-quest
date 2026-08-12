@@ -1,11 +1,14 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0b0d"><title>Quest room</title><link rel="stylesheet" href="style.css"></head><body><main class="app"><a class="back" href="index.html">← комнаты</a><section class="card"><div id="roleBadge" class="badge"></div><h1 id="title"></h1><p id="subtitle"></p><div id="content"></div></section></main><script>
-const data={
-sasha:{title:"Саша",badge:"🏎️ ГЛАВНЫЙ ИГРОК",subtitle:"Твой следующий этап открывает ведущая.",html:'<div class="mission"><b>💣 МИННОЕ ПОЛЕ</b><p>Сейчас ты проходишь испытание с закрытыми глазами. Собери 3 предмета и доберись до финиша. У тебя 3 жизни.</p></div><div class="locked">🔒 Следующие задания пока закрыты</div>'},
-dima:{title:"Дима",badge:"🍺 НАВИГАТОР",subtitle:"Секретная инструкция. Не показывай её Саше.",html:'<div class="mission"><b>Твоя роль в минном поле</b><p>Ты знаешь безопасный маршрут и можешь помогать Саше.</p><p><strong>Нельзя говорить:</strong> лево, право, вперёд, назад.</p><p>Используй ориентиры: окно, диван, Алина и т.д.</p></div>'},
-veronika:{title:"Вероника",badge:"🧠 СОМНЕВАЮЩАЯСЯ",subtitle:"Секретная инструкция. Не показывай её Саше.",html:'<div class="mission"><b>Твоя роль</b><p>Ты не знаешь маршрут. Заставляй Сашу сомневаться в Диме.</p><p>«Ты точно уверен?» · «Мне кажется, Дима ведёт не туда…»</p><p>Прямых указаний не давай.</p></div>'},
-zhenya:{title:"Женя",badge:"🥊 ГОЛОС ПОДДЕРЖКИ",subtitle:"Секретная инструкция. Не показывай её Саше.",html:'<div class="mission"><b>Твоя роль</b><p>Никаких подсказок. Только поддержка.</p><p>«Давай, Саня!» · «Ты красавчик!» · «Не сдавайся!»</p><p>Если Саша наступил на мину — реагируй максимально драматично. 😂</p></div>'},
-alina:{title:"Алина",badge:"🎤 ВЕДУЩАЯ КВИЗА",subtitle:"Твоя комната ведущей.",html:'<div class="mission"><b>Квиз «Кто знает Саню лучше?»</b><p>Ты ведущая. Дима, Женя, Вероника и Катя проходят квиз. Саша не отвечает и не подсказывает.</p></div><div class="locked">🧠 Вопросы добавим после правильных ответов Саши.</div>'},
-admin:{title:"Админка",badge:"👑 ВЕДУЩАЯ КВЕСТА",subtitle:"Тестовый центр управления.",html:'<div class="mission"><b>Текущий этап</b><p>💣 Минное поле</p><p>Статус: <strong>подготовка</strong></p></div><div class="controls"><button onclick="alert(\'В следующей версии здесь будет переключатель этапов.\')">Открыть следующий этап</button><button onclick="alert(\'Здесь появятся роли и результаты.\')">Управление ролями</button><button onclick="alert(\'Здесь появятся пазлы и результаты.\')">Пазлы и результаты</button></div>'}
-};
-const role=new URLSearchParams(location.search).get("role")||"sasha";const d=data[role]||data.sasha;document.title=d.title+" · Sanya Quest";document.getElementById("roleBadge").textContent=d.badge;document.getElementById("title").textContent=d.title;document.getElementById("subtitle").textContent=d.subtitle;document.getElementById("content").innerHTML=d.html;
-</script></body></html>
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quest Room</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="app.js"></script>
+</body>
+</html>
