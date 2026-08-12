@@ -3,7 +3,7 @@ const SUPABASE_KEY = "sb_publishable_cPU6r4RvYc8JG3qFG0OLuQ_WkgdS0oE";
 
 let db = null;
 let profile = null;
-let lastStage = 0;
+let lastSashaStage = 0;
 
 const fallback = {
   sasha: {
@@ -15,7 +15,7 @@ const fallback = {
     1: ["Кодовое слово: РЕВАНШ", "Знаешь его только ты и Саша. Подсказывать нельзя."]
   },
   veronika: {
-    3: ["Математика", "Вероника, как только Саша обратится к тебе — дай ему жару. Задай задачу, которую он должен решить, а затем отметь результат."]
+    3: ["Математика", "Как только Саша обратится к тебе — дай ему жару. Задай задачу, которую он должен решить, а затем отметь результат."]
   },
   dima: {
     4: ["Пивная дегустация", "Проведи слепую дегустацию. Ты тоже участвуешь и соревнуешься с Сашей в угадывании пива."]
@@ -42,7 +42,7 @@ function initSupabase() {
 function getProfile() {
   try {
     return JSON.parse(localStorage.getItem("quest_profile") || "null");
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -52,32 +52,31 @@ function saveProfile(p) {
   localStorage.setItem("quest_profile", JSON.stringify(p));
 }
 
-function showLogin(errorText) {
-  document.getElementById("app").innerHTML =
-    '<div class="card">' +
-      '<span class="badge">SANYA · BIRTHDAY QUEST</span>' +
-      '<h1>Твой секретный вход</h1>' +
-      '<p>Введи код, который ты получил.</p>' +
-      '<form id="loginForm">' +
-        '<input id="accessCode" placeholder="Код" autocomplete="off" required>' +
-        '<button type="submit">Войти</button>' +
-        '<div id="loginError" class="error">' + (errorText || "") + '</div>' +
-      '</form>' +
-    '</div>';
+function showLogin(message = "") {
+  document.getElementById("app").innerHTML = `
+    <div class="card">
+      <span class="badge">SANYA · BIRTHDAY QUEST</span>
+      <h1>Твой секретный вход</h1>
+      <p>Введи код, который ты получил.</p>
+      <form id="loginForm">
+        <input id="accessCode" placeholder="Код" autocomplete="off" required>
+        <button type="submit">Войти</button>
+        <div id="loginError" class="error">${message}</div>
+      </form>
+    </div>`;
 
-  document.getElementById("loginForm").addEventListener("submit", async function(e) {
+  document.getElementById("loginForm").addEventListener("submit", async e => {
     e.preventDefault();
     const box = document.getElementById("loginError");
     box.textContent = "Проверяем код…";
 
     try {
-      if (!db) throw new Error("SUPABASE");
       const result = await db.rpc("claim_room", {
         p_code: document.getElementById("accessCode").value.trim().toUpperCase()
       });
 
       if (result.error) throw result.error;
-      if (!result.data || !result.data.length) throw new Error("INVALID");
+      if (!result.data?.length) throw new Error("INVALID");
 
       const p = result.data[0];
       saveProfile({
@@ -87,7 +86,7 @@ function showLogin(errorText) {
         has_puzzle: Boolean(p.has_puzzle)
       });
 
-      window.location.href = "room.html";
+      location.href = "room.html";
     } catch (err) {
       console.error(err);
       box.textContent = err.message === "INVALID"
@@ -108,7 +107,7 @@ async function getState() {
   return result.data;
 }
 
-async function getStageContent(stage) {
+async function getContent(stage) {
   try {
     const result = await db
       .from("stage_content")
@@ -124,35 +123,53 @@ async function getStageContent(stage) {
     console.error(e);
   }
 
-  const local = fallback[profile.participant_id];
-  return local && local[stage]
-    ? local[stage]
-    : ["Квест", "Следуй инструкциям ведущего."];
+  return fallback[profile.participant_id]?.[stage]
+    || ["Квест", "Следуй инструкциям ведущего."];
 }
 
-function renderButtons(stage) {
-  if (profile.participant_id === "zhenya" && stage === 1) {
-    return '' +
-      '<div class="admin">' +
-        '<h2>Результат КНБ</h2>' +
-        '<p>После финального раунда выбери результат.</p>' +
-        '<div class="row">' +
-          '<button id="sashaWin">Саша победил</button>' +
-          '<button id="sashaLose" class="secondary">Саша проиграл</button>' +
-        '</div>' +
-      '</div>';
+/*
+  ВАЖНО:
+  Личный экран каждого ведущего теперь определяется его ролью,
+  а не глобальным current_stage.
+  Поэтому переход Саши на следующий этап НЕ удаляет кнопки ведущего.
+*/
+function leaderStage() {
+  const role = profile.participant_id;
+
+  if (role === "zhenya") return 1;
+  if (role === "veronika") return 3;
+  if (role === "dima") return 4;
+  if (role === "alina") return 6;
+  if (role === "katya") return 5;
+
+  return null;
+}
+
+function leaderButtons() {
+  const role = profile.participant_id;
+
+  if (role === "zhenya") {
+    return `
+      <div class="admin">
+        <h2>Результат КНБ</h2>
+        <p>После финального раунда выбери результат.</p>
+        <div class="row">
+          <button id="sashaWin">Саша победил</button>
+          <button id="sashaLose" class="secondary">Саша проиграл</button>
+        </div>
+      </div>`;
   }
 
-  if (profile.participant_id === "veronika" && stage === 3) {
-    return '' +
-      '<div class="admin">' +
-        '<h2>Результат математики</h2>' +
-        '<p>После того как Саша решит задачу, отметь результат.</p>' +
-        '<div class="row">' +
-          '<button id="mathPass">Сдал</button>' +
-          '<button id="mathFail" class="secondary">Не сдал</button>' +
-        '</div>' +
-      '</div>';
+  if (role === "veronika") {
+    return `
+      <div class="admin">
+        <h2>Результат математики</h2>
+        <p>После того как Саша решит задачу, отметь результат.</p>
+        <div class="row">
+          <button id="mathPass">Сдал</button>
+          <button id="mathFail" class="secondary">Не сдал</button>
+        </div>
+      </div>`;
   }
 
   return "";
@@ -160,54 +177,60 @@ function renderButtons(stage) {
 
 async function renderRoom() {
   if (!profile) {
-    showLogin("");
+    showLogin();
     return;
   }
 
   const state = await getState();
-  const stage = Number(state.current_stage) > 0 ? Number(state.current_stage) : 1;
-  const content = await getStageContent(stage);
+  const globalStage = Number(state.current_stage) || 1;
 
-  document.getElementById("app").innerHTML =
-    '<div class="card">' +
-      '<span class="badge">' + profile.display_name + '</span>' +
-      '<div class="stat">Этап ' + stage + '</div>' +
-      '<h1>' + content[0] + '</h1>' +
-      '<div class="mission">' + content[1] + '</div>' +
-      renderButtons(stage) +
-    '</div>';
+  // Саша получает именно текущий этап квеста.
+  // Ведущие получают свой постоянный экран.
+  let displayStage = globalStage;
 
-  if (profile.participant_id === "zhenya" && stage === 1) {
-    document.getElementById("sashaWin").addEventListener("click", function() {
-      finishStage("knb", true);
-    });
-    document.getElementById("sashaLose").addEventListener("click", function() {
-      finishStage("knb", false);
-    });
+  if (profile.participant_id !== "sasha") {
+    displayStage = leaderStage() || globalStage;
   }
 
-  if (profile.participant_id === "veronika" && stage === 3) {
-    document.getElementById("mathPass").addEventListener("click", function() {
-      finishStage("math", true);
-    });
-    document.getElementById("mathFail").addEventListener("click", function() {
-      finishStage("math", false);
-    });
+  const content = await getContent(displayStage);
+
+  document.getElementById("app").innerHTML = `
+    <div class="card">
+      <span class="badge">${profile.display_name}</span>
+      <div class="stat">${profile.participant_id === "sasha" ? "Этап " + globalStage : "Твоя роль"}</div>
+      <h1>${content[0]}</h1>
+      <div class="mission">${content[1]}</div>
+      ${profile.participant_id === "sasha" ? "" : leaderButtons()}
+    </div>`;
+
+  bindLeaderButtons();
+  lastSashaStage = globalStage;
+}
+
+function bindLeaderButtons() {
+  if (profile.participant_id === "zhenya") {
+    document.getElementById("sashaWin")?.addEventListener("click", () => finishStage("knb", true));
+    document.getElementById("sashaLose")?.addEventListener("click", () => finishStage("knb", false));
   }
 
-  lastStage = stage;
+  if (profile.participant_id === "veronika") {
+    document.getElementById("mathPass")?.addEventListener("click", () => finishStage("math", true));
+    document.getElementById("mathFail")?.addEventListener("click", () => finishStage("math", false));
+  }
 }
 
 async function finishStage(kind, won) {
-  document.querySelectorAll("button").forEach(function(button) {
-    button.disabled = true;
-  });
+  document.querySelectorAll("button").forEach(b => b.disabled = true);
 
-  // KNB: win -> stage 3 (Sasha + Veronika), loss -> stay on stage 1.
-  // Math: pass -> stage 4 (Sasha + Dima), fail -> stay on stage 3.
-  let nextStage = lastStage;
-  if (kind === "knb" && won) nextStage = 3;
-  if (kind === "math" && won) nextStage = 4;
+  let nextStage = null;
+
+  if (kind === "knb") {
+    nextStage = won ? 3 : 1;
+  }
+
+  if (kind === "math") {
+    nextStage = won ? 4 : 3;
+  }
 
   const result = await db
     .from("quest_state")
@@ -222,9 +245,7 @@ async function finishStage(kind, won) {
   if (result.error) {
     console.error(result.error);
     alert("Не удалось сохранить результат. Попробуйте ещё раз.");
-    document.querySelectorAll("button").forEach(function(button) {
-      button.disabled = false;
-    });
+    document.querySelectorAll("button").forEach(b => b.disabled = false);
     return;
   }
 
@@ -235,35 +256,37 @@ async function start() {
   initSupabase();
   profile = getProfile();
 
-  if (window.location.pathname.endsWith("room.html")) {
-    if (!profile) {
-      showLogin("");
-      return;
-    }
-
-    await renderRoom();
-
-    setInterval(async function() {
-      try {
-        const state = await getState();
-        const stage = Number(state.current_stage) > 0 ? Number(state.current_stage) : 1;
-        if (stage !== lastStage) {
-          await renderRoom();
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }, 1500);
-  } else {
-    if (profile) {
-      window.location.href = "room.html";
-    } else {
-      showLogin("");
-    }
+  if (!profile) {
+    showLogin();
+    return;
   }
+
+  if (!location.pathname.endsWith("room.html")) {
+    location.href = "room.html";
+    return;
+  }
+
+  await renderRoom();
+
+  // Проверяем изменение общего этапа только для экрана Саши.
+  // У ведущих экран не исчезает из-за перехода Саши.
+  setInterval(async () => {
+    try {
+      if (profile.participant_id !== "sasha") return;
+
+      const state = await getState();
+      const stage = Number(state.current_stage) || 1;
+
+      if (stage !== lastSashaStage) {
+        await renderRoom();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, 1500);
 }
 
-start().catch(function(error) {
+start().catch(error => {
   console.error(error);
   showLogin("Не удалось загрузить квест.");
 });
